@@ -1,10 +1,15 @@
 import polars as pl
+from ..utils.helpers import safe_read_csv
 from tabulate import tabulate
 
 
 def read_data_dh(path: str = None) -> pl.DataFrame:
     # read the csv file use polars
-    df = pl.read_csv(path)
+    # Force polars to examine the entire file when inferring dtypes. This helps
+    # avoid warnings like "Could not determine dtype for column N" when
+    # columns contain mixed types beyond the default sample range.
+    # Ask polars to try parsing dates during CSV read and infer schema from whole file
+    df = safe_read_csv(path, infer_schema_length=None, try_parse_dates=True)
     df = df[
         [
             "NUMBER",
@@ -29,10 +34,21 @@ def create_dh_report_text(df: pl.DataFrame) -> str:
     for item in list_lu:
         link_up = f"{link_up},  {item}"
 
-    # determine period (min / max date part from `REPORTED AT`) using Python extraction
-    reported_vals = df.filter(pl.col("REPORTED AT").is_not_null())[
-        "REPORTED AT"
-    ].to_list()
+        # determine period (min / max date part from `REPORTED AT`) using Python extraction
+        # Ensure `REPORTED AT` is a datetime column where possible; leave strings alone
+        if "REPORTED AT" in df.columns:
+            try:
+                df = df.with_columns(
+                    pl.col("REPORTED AT").cast(pl.Datetime).alias("REPORTED AT")
+                )
+            except Exception:
+                # Best-effort: keep the column as-is (string) if casting fails
+                pass
+
+        # determine period (min / max date part from `REPORTED AT`) using Python extraction
+        reported_vals = df.filter(pl.col("REPORTED AT").is_not_null())[
+            "REPORTED AT"
+        ].to_list()
     date_parts = [
         str(v).split(" ")[0]
         for v in reported_vals

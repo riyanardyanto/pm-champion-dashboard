@@ -27,6 +27,7 @@ class AppDataConfig:
     ca_bundle: str | None = None
     # Optional platform/file-specific path used by some sections (e.g. MPS)
     file_path: Tuple[str, ...] | None = None
+    sheet_name: str | None = None
 
     @classmethod
     def from_parser(
@@ -60,6 +61,7 @@ class AppDataConfig:
         verify_ssl = parser.getboolean(section_name, "verify_ssl", fallback=True)
         ca_bundle = get(section_name, "ca_bundle", fallback=None) or None
         file_path_raw = get(section_name, "file_path", fallback=None) or None
+        sheet_name = get(section_name, "sheet_name", fallback=None)
 
         link_up = cls._normalize_links(link_up_raw)
         file_path = cls._normalize_paths(file_path_raw) if file_path_raw else None
@@ -73,6 +75,7 @@ class AppDataConfig:
             verify_ssl=verify_ssl,
             ca_bundle=ca_bundle,
             file_path=file_path,
+            sheet_name=sheet_name.strip() if sheet_name else None,
         )
 
     @staticmethod
@@ -120,6 +123,7 @@ class AppDataConfig:
             "verify_ssl": self.verify_ssl,
             "ca_bundle": self.ca_bundle,
             "file_path": self.file_path,
+            "sheet_name": self.sheet_name,
         }
 
 
@@ -154,6 +158,7 @@ def create_config(path: Path | None = None) -> Path:
 
     config["MPS"] = {
         "environment": "development",
+        "sheet_name": "Tracking",
         # Keep link_up in sync with available default paths
         "link_up": "LU21,LU26",
         # Use comma-separated forward-slash paths (no surrounding quotes)

@@ -161,9 +161,12 @@ class MPSUI(ttk.Frame):
             # Prefer the path configured under the `MPS` section in config.ini.
             cfg = read_config(section="MPS")
             path = cfg.file_path[cfg.link_up.index(self.mps_sidebar.linkup.get())]
+            sheet_name = cfg.sheet_name
 
             # Read data in background thread
-            self.mps_df = await asyncio.to_thread(read_data_mps, path)
+            self.mps_df = await asyncio.to_thread(
+                read_data_mps, path, sheet_name=sheet_name
+            )
 
             selected_year = int(self.mps_sidebar.year.get())
             selected_week = self.mps_sidebar.weeknum.get()
@@ -238,3 +241,4 @@ class MPSUI(ttk.Frame):
             self.mps_page.qr_code_label.configure(image="", text="Error")
             self.mps_page.qr_code_label.image = None
             self.mps_page._qr_image = None
+            raise e

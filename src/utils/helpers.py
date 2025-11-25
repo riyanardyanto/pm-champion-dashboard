@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+import warnings
+import polars as pl
 
 
 def resource_path(relative_path: str) -> str:
@@ -39,3 +41,51 @@ def get_script_folder() -> str:
             return str(Path(sys.executable).parent)
 
     return str(Path(sys.modules["__main__"].__file__).resolve().parent)
+
+
+def safe_read_excel(*args, **kwargs) -> pl.DataFrame:
+    """Read Excel via polars while suppressing dtype inference warnings.
+
+    Polars sometimes emits "Could not determine dtype for column N" when it
+    encounters mixed/empty columns during schema inference. This helper will
+    perform the read while filtering those specific warnings so they don't
+    clutter logs. Callers should still validate/clean the resulting frame.
+    """
+    import os, sys
+
+    # Some underlying readers print dtype-detection messages to stderr.
+    # Temporarily redirect stderr to devnull while we read so the user isn't
+    # spammed with those messages. We still let real errors propagate.
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message=r"Could not determine dtype for column"
+        )
+        devnull = open(os.devnull, "w")
+        old_stderr = sys.stderr
+        try:
+            sys.stderr = devnull
+            return pl.read_excel(*args, **kwargs)
+        finally:
+            sys.stderr = old_stderr
+            devnull.close()
+
+
+def safe_read_csv(*args, **kwargs) -> pl.DataFrame:
+    """Read CSV via polars while suppressing dtype inference warnings.
+
+    Mirrors safe_read_excel behavior but for CSV ingestion.
+    """
+    import os, sys
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message=r"Could not determine dtype for column"
+        )
+        devnull = open(os.devnull, "w")
+        old_stderr = sys.stderr
+        try:
+            sys.stderr = devnull
+            return pl.read_csv(*args, **kwargs)
+        finally:
+            sys.stderr = old_stderr
+            devnull.close()

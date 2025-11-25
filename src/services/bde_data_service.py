@@ -1,4 +1,5 @@
 import polars as pl
+from ..utils.helpers import safe_read_csv
 from tabulate import tabulate
 
 
@@ -7,7 +8,18 @@ from tabulate import tabulate
 
 def read_data_dh(path: str = None) -> pl.DataFrame:
     # read the csv file use polars
-    df = pl.read_csv(path)
+    # Force polars to examine the entire file when inferring dtypes. This helps
+    # avoid warnings like "Could not determine dtype for column N" when
+    # columns contain mixed types beyond the default sample range.
+    df = safe_read_csv(path, infer_schema_length=None, try_parse_dates=True)
+    # Normalize `REPORTED AT` to Datetime when present
+    if "REPORTED AT" in df.columns:
+        try:
+            df = df.with_columns(
+                pl.col("REPORTED AT").cast(pl.Datetime).alias("REPORTED AT")
+            )
+        except Exception:
+            pass
     df = df[
         [
             "NUMBER",
