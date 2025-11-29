@@ -51,7 +51,8 @@ def safe_read_excel(*args, **kwargs) -> pl.DataFrame:
     perform the read while filtering those specific warnings so they don't
     clutter logs. Callers should still validate/clean the resulting frame.
     """
-    import os, sys
+    import os
+    import sys
 
     # Some underlying readers print dtype-detection messages to stderr.
     # Temporarily redirect stderr to devnull while we read so the user isn't
@@ -75,7 +76,8 @@ def safe_read_csv(*args, **kwargs) -> pl.DataFrame:
 
     Mirrors safe_read_excel behavior but for CSV ingestion.
     """
-    import os, sys
+    import os
+    import sys
 
     with warnings.catch_warnings():
         warnings.filterwarnings(

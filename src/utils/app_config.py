@@ -138,12 +138,14 @@ def create_config(path: Path | None = None) -> Path:
 
     config = ConfigParser()
     link_up = ["LU18", "LU21", "LU26", "LU24"]
-    config["DEFAULT"] = {"environment": "production"}
-
-    config["SPA"] = {
+    config["DEFAULT"] = {
+        "environment": "production",
         "username": "",
         "password": "",
         "link_up": ",".join(link_up),
+    }
+
+    config["SPA"] = {
         "url": "https://ots.spappa.aws.private-pmideep.biz/db.aspx?",
         # If you are using self-signed certificates or a private CA,
         # set `verify_ssl` to False or provide `ca_bundle` with a path
@@ -163,6 +165,10 @@ def create_config(path: Path | None = None) -> Path:
         "link_up": "LU21,LU26",
         # Use comma-separated forward-slash paths (no surrounding quotes)
         "file_path": "D:/Program/Python/tester/assets/21-MPS board Print.xlsx, D:/Program/Python/tester/assets/26-MPS board Print.xlsx",
+    }
+
+    config["RNM"] = {
+        "link_up": "LU18,LU21,LU26,LU24",
     }
 
     target_path = path or get_config_path()

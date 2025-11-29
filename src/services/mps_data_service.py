@@ -223,7 +223,6 @@ def read_data_mps(
         equipments_clean = [_clean_equipment(v) for v in equipment_vals]
         df = df.with_columns(pl.Series("Equipment", equipments_clean))
 
-    df.write_csv("x test.csv", include_header=True)
     return df.clone()
 
 
