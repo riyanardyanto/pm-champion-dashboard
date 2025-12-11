@@ -1,6 +1,6 @@
 import ttkbootstrap as ttk
 from ttkbootstrap.tableview import Tableview
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilenames
 from src.services.dh_data_service import create_dh_report_text, read_data_dh
 
 import qrcode
@@ -100,14 +100,39 @@ class DHUI(ttk.Frame):
     @async_handler
     async def on_get_data_dh(self) -> None:
         # Implement the logic to handle the "Get Data" button click
-        filepath = askopenfilename(
+        filepath = askopenfilenames(
             # initialdir="/",  # Sets the initial directory
             title="Select DH csv file",
             filetypes=(("CSV files", "*.csv"), ("All files", "*.*")),
         )
         if filepath:
-            # Read/prepare data in background thread
-            self.dh_df = await asyncio.to_thread(read_data_dh, filepath)
+            # Read/prepare data in background thread, and join if multiple files
+            # If the user selected multiple files, read each file in the
+            # background thread using the service helper and concatenate them
+            # with polars so the UI doesn't need to depend on pandas.
+            if len(filepath) > 1:
+
+                def _read_many(paths):
+                    # Import locally inside worker thread to avoid adding
+                    # runtime deps at module import time in the UI.
+                    import polars as pl
+
+                    dfs = [read_data_dh(p) for p in paths]
+                    # filter out empty frames (defensive)
+                    dfs = [df for df in dfs if df is not None and df.height > 0]
+                    if not dfs:
+                        return pl.DataFrame()
+
+                    # Concatenate vertically, preserving column types
+                    return pl.concat(dfs, how="vertical")
+
+                self.dh_df = await asyncio.to_thread(_read_many, filepath)
+            else:
+                # Single file selected — pass only the single path to the reader
+                single_path = (
+                    filepath[0] if isinstance(filepath, (list, tuple)) else filepath
+                )
+                self.dh_df = await asyncio.to_thread(read_data_dh, single_path)
 
             def _select_columns(df):
                 return df[

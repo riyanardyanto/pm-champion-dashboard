@@ -98,7 +98,7 @@ def scrape_tables_to_polars_numeric_headers(
         enc = getattr(response, "charset_encoding", None)
         if not enc:
             try:
-                import chardet
+                import chardet  # type: ignore
 
                 enc = chardet.detect(response.content or b"").get("encoding")
             except Exception:
