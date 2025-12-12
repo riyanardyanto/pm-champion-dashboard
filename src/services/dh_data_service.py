@@ -98,17 +98,17 @@ def get_data_dh_metrics(df: pl.DataFrame):
         dh_high_with_cm / total_dh_high if total_dh_high != 0 else 0
     )
 
-    # DH SOC grouped by work center
-    dh_soc_found = (
-        df.filter(
-            pl.col("DEFECT TYPES").fill_null("").str.contains("SOURCE_OF_CONTAMINATION")
-        )
-        .group_by("WORK CENTER TYPE")
-        .agg(pl.count().alias("COUNT"))
-        .with_columns(pl.col("WORK CENTER TYPE").alias("WORK CENTER"))
-        .select(["WORK CENTER", "COUNT"])
+    # filter dataframe for column "DEFECT TYPES" containing "SOURCE_OF_CONTAMINATION"
+    dh_soc_found = df.filter(
+        pl.col("DEFECT TYPES").str.contains("SOURCE_OF_CONTAMINATION")
     )
-    data_dh_soc = {row["WORK CENTER"]: row["COUNT"] for row in dh_soc_found.to_dicts()}
+    data_dh_soc = {}
+    data_dh_soc["FOUND"] = int(dh_soc_found.height) if dh_soc_found.height > 0 else 0
+    data_dh_soc["FIX"] = (
+        int(dh_soc_found.filter(pl.col("STATUS") == "CLOSED").height)
+        if dh_soc_found.height > 0
+        else 0
+    )
 
     all_data = {
         "DH COMPONENT": data_dh_component,
